@@ -755,8 +755,8 @@ contains
                         if (ib_flux_wall .and. gp%layer == 1) then
                             mdot_k = 0._wp
                             e_s = 0._wp
-                            if (surface_converged .and. rho_s > 0._wp) call s_wall_flux_rates(rho_s, T_s, Ys_s, v_stefan, mdot_k, &
-                                & e_s)
+                            if (surface_converged .and. rho_s > 0._wp) call s_wall_flux_rates(rho_s, T_s, Ys_s, W_species, &
+                                & v_stefan, mdot_k, e_s)
                             $:GPU_LOOP(parallelism='[seq]')
                             do q = 1, num_species
                                 ib_wall_src(q)%sf(j, k, l) = mdot_k(q)
@@ -5033,12 +5033,12 @@ contains
 
     !> ib_flux_wall: the species mass fluxes a converged surface solve sends into the gas, W_k omega_k, and the energy they carry,
     !! sum_k mdot_k (h_k(T_s) + v_n^2/2), per unit wall area
-    subroutine s_wall_flux_rates(rho_s, T_s, Ys_s, v_n, mdot_k, e_s)
+    subroutine s_wall_flux_rates(rho_s, T_s, Ys_s, W_species, v_n, mdot_k, e_s)
 
         $:GPU_ROUTINE(parallelism='[seq]')
 
         real(wp), intent(in)  :: rho_s, T_s, v_n
-        real(wp), intent(in)  :: Ys_s(num_species)
+        real(wp), intent(in)  :: Ys_s(num_species), W_species(num_species)
         real(wp), intent(out) :: mdot_k(num_species), e_s
         real(wp)              :: h_k(num_species)
         integer               :: q
@@ -5047,7 +5047,7 @@ contains
         call get_species_enthalpies_mass(T_s, h_k)
         e_s = 0._wp
         do q = 1, num_species
-            mdot_k(q) = molecular_weights(q)*mdot_k(q)
+            mdot_k(q) = W_species(q)*mdot_k(q)
             e_s = e_s + mdot_k(q)*(h_k(q) + 0.5_wp*v_n**2)
         end do
 
